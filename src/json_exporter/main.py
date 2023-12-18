@@ -2,7 +2,7 @@
 
 from logging import getLogger, StreamHandler
 from argparse import ArgumentParser
-from signal import signal, SIGINT, SIGTERM, SIGQUIT, SIGABRT, SIGKILL
+from signal import signal
 
 from json_exporter import JSONExporter
 
@@ -58,7 +58,8 @@ def main():
             exporter.shutdown()
         exit(0)
 
-    for sig in [SIGINT, SIGTERM, SIGQUIT, SIGABRT, SIGKILL]:
+    # Handle SIGINT, SIGTERM, SIGQUIT, SIGABRT
+    for sig in [2, 15, 3, 6]:
         signal(sig, handle_shutdown_signal)
 
     exporter.serve_forever()
