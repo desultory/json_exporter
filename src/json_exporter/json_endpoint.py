@@ -41,6 +41,7 @@ class JSONEndpoint:
         self.json_paths = kwargs.pop('json_labels', {})
         self.metric_definitions = kwargs.pop('metrics')
         self.labels = Labels(kwargs.pop('labels', {}), logger=self.logger, _log_init=False)
+        self.labels['endpoint'] = self.name
 
         self.get_data()
 
