@@ -2,7 +2,7 @@
 JSON exporter class
 """
 
-from .exporter import Exporter
+from prometheus_exporter import Exporter
 
 
 class JSONExporter(Exporter):
@@ -23,7 +23,7 @@ class JSONExporter(Exporter):
             self.endpoints.append(JSONEndpoint(name=endpoint_name,
                                                **config, logger=self.logger, _log_init=False))
 
-    def _get_metrics(self):
+    def get_metrics(self):
         """ Get metrics list from each endpoint, add them together """
         metric_list = []
         for endpoint in self.endpoints:

@@ -3,7 +3,7 @@ JSON label class.
 Like Labels, but resolves the value from json data.
 """
 
-from .labels import Labels
+from prometheus_exporter import Labels
 
 
 class JSONLabels(Labels):

@@ -2,7 +2,7 @@
 JSON prometheus metric class
 """
 
-from .metric import Metric
+from prometheus_exporter import Metric
 
 
 class JSONMetric(Metric):

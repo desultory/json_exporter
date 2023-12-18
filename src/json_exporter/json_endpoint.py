@@ -2,6 +2,8 @@
 Defines the JSON endpoint for the JSON exporter
 """
 
+from threading import Event
+
 from zenlib.logging import loggify
 
 
@@ -16,7 +18,6 @@ class JSONEndpoint:
         """
         Initializes the JSON endpoint
         """
-        from threading import Event
         if name in self.endpoints:
             raise ValueError("JSON endpoint already exists: %s" % name)
         self.name = name
@@ -36,7 +37,7 @@ class JSONEndpoint:
         Makes the intitial JSON request, to be used for json_labels.
         Adds all metrics to self.metrics.
         """
-        from .labels import Labels
+        from prometheus_exporter import Labels
 
         self.endpoint = kwargs.pop('endpoint')
         self.headers = kwargs.pop('headers', {})
@@ -46,7 +47,6 @@ class JSONEndpoint:
         self.labels['endpoint'] = self.name
 
         self.updated.set()
-        self.get_data()
 
     def populate_metrics(self):
         """
