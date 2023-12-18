@@ -1,5 +1,9 @@
 """
-Basic exporter class
+Basic exporter class for prometheus metrics.
+Runs a ThreadingHTTPServer with a PrometheusRequest handler.
+The PrometheusRequest handler processes requests from Promotheus, by default returns server.export().
+The server.export() method goes through all defined metrics and returns them as a string.
+If a dict is passed to the export method, it will be used to filter by that label.
 """
 
 from http.server import ThreadingHTTPServer
@@ -50,7 +54,38 @@ class Exporter(ThreadingHTTPServer):
         self.logger.info("Read config file: %s", self.config_file)
         self.labels.update(self.config.get('labels', {}))
 
-    def export(self):
-        """ Go through ALL DEFINED metrics, turn them into a metric string for prometheus."""
+    def _get_metrics(self):
+        """
+        Gets all defined metrics.
+        """
         from .metric import Metric
-        return '\n'.join(str(metric) for metric in Metric.metrics.values())
+        return [metric for metric in Metric.metrics.values()]
+
+    def _filter_metrics(self, metrics, label_filter):
+        """
+        Filters a list of metrics by a label_filter.
+        """
+        for label_name, label_value in label_filter.items():
+            if label_name not in self.labels.global_labels:
+                raise ValueError("label_filter contains unknown label: %s", label_name)
+            if label_value not in self.labels.global_labels[label_name]:
+                raise ValueError("[%s] label_filter contains unknown label value: %s" % (label_name, label_value))
+            return [metric for metric in metrics if metric.labels[label_name] == label_value]
+
+    def export(self, label_filter=None):
+        """
+        Go through ALL DEFINED metrics, turn them into a metric string for prometheus.
+        If a label_filter is passed, only return metrics that match the label_filter.
+        """
+        metrics = self._get_metrics()
+        if label_filter:
+            metrics = self._filter_metrics(metrics, label_filter)
+        return "\n".join([str(metric) for metric in metrics])
+
+    def handle_error(self, request, client_address):
+        """ Handle errors in the request handler. """
+        from sys import exc_info
+        from traceback import format_exception
+        self.logger.warning("[%s:%d] Error in request: %s" % (*client_address, exc_info()[1]))
+        exc = format_exception(*exc_info())
+        self.logger.debug(''.join(exc).replace(r'\n', '\n'))

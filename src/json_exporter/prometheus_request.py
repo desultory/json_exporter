@@ -23,21 +23,35 @@ class PrometheusRequest(BaseHTTPRequestHandler):
                            self.log_date_time_string(),
                            format % args))
 
-    def do_GET(self):
-        if self.path == '/metrics':
-            self.logger.info("[%s:%d] Metrics request" % (*self.client_address,))
-            response = self.server.export().encode('utf-8')
-            self.send_response(200)
-            self.send_header("Content-type", "text/plain")
-            self.send_header("Content-Length", len(response))
-            self.end_headers()
-            self.wfile.write(response)
-            return
+    def _extract_params(self):
+        """ Extracts the parameters from the request path """
+        if '?' not in self.path:
+            raise ValueError("No parameters in request path.")
+        return dict([p.split('=') for p in self.path.split('?')[1].split('&')])
 
-        self.logger.warning("[%s:%d] Invalid url access attempt: %s" % (*self.client_address, self.path))
-        self.send_response(404)
-        self.send_header("Content-type", "text/html")
+    def do_GET(self):
+        if self.path != '/metrics' and not self.path.startswith('/metrics?'):
+            self.send_error(404, '404')
+            raise ValueError("[%s:%d] Invalid url access attempt: %s" % (*self.client_address, self.path))
+
+        try:
+            if self.path == '/metrics':
+                self.logger.info("[%s:%d] Metrics request" % (*self.client_address,))
+                response = self.server.export().encode('utf-8')
+
+            if self.path.startswith('/metrics?'):
+                params = self._extract_params()
+                self.logger.info("[%s:%d] Metrics request with parameters: %s " % (*self.client_address, params))
+                response = self.server.export(params).encode('utf-8')
+        except ValueError as e:
+            self.send_error(501, str(e))
+            raise ValueError("Failed to fetch metrics: %s" % (e))
+
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain")
+        self.send_header("Content-Length", len(response))
         self.end_headers()
+        self.wfile.write(response)
 
     def do_POST(self):
         self.logger.warning("POST request attempted")

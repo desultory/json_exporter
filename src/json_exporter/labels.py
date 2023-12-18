@@ -10,6 +10,9 @@ from zenlib.logging import loggify
 
 @loggify
 class Labels(dict):
+    """ A dictionary of labels, used by both Metrics and Exporters """
+    global_labels = {}
+
     def __init__(self, dict_items={}, **kwargs):
         """ Create a new Labels object from a dictionary """
         self.update(dict_items)
@@ -17,6 +20,14 @@ class Labels(dict):
     def __setitem__(self, key, value):
         self._check_label(key, value)
         super().__setitem__(key, value)
+        self._update_global_labels(key, value)
+
+    def _update_global_labels(self, key, value):
+        """ Update the global labels with the labels in this dictionary """
+        if key not in Labels.global_labels:
+            Labels.global_labels[key] = [value]
+        else:
+            Labels.global_labels[key].append(value)
 
     def update(self, new_labels):
         """ Updates the labels with the new labels """

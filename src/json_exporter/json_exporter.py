@@ -23,6 +23,10 @@ class JSONExporter(Exporter):
             self.endpoints.append(JSONEndpoint(name=endpoint_name,
                                                **config, logger=self.logger, _log_init=False))
 
-    def export(self):
-        """ Print each endpoint """
-        return "\n".join(str(endpoint) for endpoint in self.endpoints)
+    def _get_metrics(self):
+        """ Get metrics list from each endpoint, add them together """
+        metric_list = []
+        for endpoint in self.endpoints:
+            endpoint.get_data()
+            metric_list.extend(endpoint.metrics)
+        return metric_list
