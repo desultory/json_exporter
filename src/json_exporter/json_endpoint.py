@@ -10,10 +10,14 @@ class JSONEndpoint:
     """
     Defines the JSON endpoint for the JSON exporter
     """
+    endpoints = {}
+
     def __init__(self, name, *args, **kwargs):
         """
         Initializes the JSON endpoint
         """
+        if name in self.endpoints:
+            raise ValueError("JSON endpoint already exists: %s" % name)
         self.name = name
         self.metrics = []
         self.parse_kwargs(kwargs)
