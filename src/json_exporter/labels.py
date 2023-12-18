@@ -1,5 +1,8 @@
 """
-Label class, used by both Metrics and Exporters
+Labels dictionary, used by both Metrics and Exporters.
+
+Each Labels dictionary only allows a label name to be user/set once.
+Update can be used to combine two Label dictionaries.
 """
 
 from zenlib.logging import loggify
@@ -33,3 +36,9 @@ class Labels(dict):
         # Check that the label value is a string
         if not isinstance(value, str):
             raise TypeError('Label values must be strings')
+
+    def __str__(self):
+        return ','.join(['%s="%s"' % (name, value) for name, value in self.items()])
+
+
+

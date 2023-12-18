@@ -25,7 +25,7 @@ class Metric:
     Labels can be added to the metric by passing a dictionary as the labels argument.
     The value defaults to 0.
     """
-    metrics = {}
+    metrics = []
 
     def __init__(self, name, value=0, metric_type='untyped', help=None, labels=Labels(), *args, **kwargs):
         """
@@ -39,13 +39,18 @@ class Metric:
         self.help = help
         self.labels = Labels(labels, logger=self.logger, _log_init=False)
         self.value = value
-        self.metrics[name] = self
+        Metric.metrics.append(self)
+
+    def __del__(self):
+        """
+        Delete the metric from the metrics dictionary
+        """
+        Metric.metrics.remove(self)
 
     def __setattr__(self, name, value):
         """
         Turn spaces in the name into underscores.
         Set the metric type based on the MetricTypes enum.
-        Ensure that labels are a dictionary.
         """
         if name == 'name':
             value = value.replace(' ', '_')
@@ -56,15 +61,6 @@ class Metric:
                 raise TypeError('Value must be an integer or float')
 
         super().__setattr__(name, value)
-
-    def _build_label_str(self):
-        """ Iterates over the labels and builds the label string """
-        for name, value in self.labels.items():
-            yield f'{name}="{value}"'
-
-    def _get_label_str(self):
-        """ Returns the label string based on the built compontents """
-        return ",".join(self._build_label_str())
 
     def __str__(self):
         """
@@ -78,7 +74,7 @@ class Metric:
         out_str += f'# TYPE {self.name} {self.type.value}\n{self.name}'
 
         if self.labels:
-            out_str = f"{out_str}{{{self._get_label_str()}}}"
+            out_str = f"{out_str}{{{self.labels}}}"
 
         out_str += f' {self.value}'
         return out_str

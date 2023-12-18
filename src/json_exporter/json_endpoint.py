@@ -35,26 +35,28 @@ class JSONEndpoint:
         Adds all metrics to self.metrics.
         """
         from .labels import Labels
-        from .json_labels import JSONLabels
-        from .json_metric import JSONMetric
 
         self.endpoint = kwargs.pop('endpoint')
         self.headers = kwargs.pop('headers', {})
-
-        common_args = {'logger': self.logger, '_log_init': False}
-        labels = kwargs.pop('labels', {})
-        self.labels = Labels(labels, **common_args)
+        self.json_paths = kwargs.pop('json_labels', {})
+        self.metric_definitions = kwargs.pop('metrics')
+        self.labels = Labels(kwargs.pop('labels', {}), logger=self.logger, _log_init=False)
 
         self.get_data()
-        common_args.update({'json_data': self.data})
 
-        json_paths = kwargs.pop('json_labels', {})
-        self.json_labels = JSONLabels(json_paths=json_paths, **common_args)
+    def populate_metrics(self):
+        """ Populates the metrics for the JSON endpoint """
+        from .json_metric import JSONMetric
+        for metric in self.metrics.copy():
+            self.logger.debug("Removing stale metric: %s", metric)
+            self.metrics.remove(metric)  # Remove the old metric
+            del metric
 
-        for metric, values in kwargs.pop('metrics').items():
-            metric_args = {'json_path': values.pop('path'), 'metric_type': values.pop('type')}
-            self.metrics.append(JSONMetric(metric, labels=self.get_labels(),
-                                           **common_args, **metric_args, **values))
+        for metric, values in self.metric_definitions.items():
+            metric_args = {'json_path': values['path'], 'metric_type': values['type']}
+            self.metrics.append(JSONMetric(metric, labels=self.get_labels(), json_data=self.data,
+                                           **metric_args, **values,
+                                           _log_init=False, logger=self.logger))
 
     def get_data(self):
         """ Returns the data for the JSON endpoint """
@@ -79,6 +81,19 @@ class JSONEndpoint:
             self.data = loads(request.text)
         except JSONDecodeError as error:
             raise ValueError("Failed to decode JSON: %s" % error)
+
+        self.update_json_labels()
+        self.populate_metrics()
+
+    def update_json_labels(self):
+        """ Updates the JSON labels """
+        from .json_labels import JSONLabels
+        self.logger.debug("[%s] Updating JSON labels", self.name)
+
+        kwargs = {'json_paths': self.json_paths, 'json_data': self.data,
+                  'logger': self.logger, '_log_init': False}
+
+        self.json_labels = JSONLabels(**kwargs)
 
     def __str__(self):
         """ Returns the value of all the metrics """

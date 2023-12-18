@@ -1,6 +1,6 @@
 """
 JSON label class.
-Like a label, but resolves the value from json data
+Like Labels, but resolves the value from json data.
 """
 
 from .labels import Labels
@@ -9,6 +9,11 @@ from .labels import Labels
 class JSONLabels(Labels):
     """
     JSON Labels class
+
+    Each JSONLabels must be defined with JSON Data and JSON Paths.
+    The JSON data is the data used to pull data from.
+    The JSON Paths is a dictionary of label names, where the value
+    is the path to the data in the JSON data, separated by periods.
     """
     def __init__(self, json_data, json_paths={}, **kwargs):
         super().__init__(**kwargs)
