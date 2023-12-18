@@ -16,10 +16,12 @@ class JSONEndpoint:
         """
         Initializes the JSON endpoint
         """
+        from threading import Event
         if name in self.endpoints:
             raise ValueError("JSON endpoint already exists: %s" % name)
         self.name = name
         self.metrics = []
+        self.updated = Event()
         self.parse_kwargs(kwargs)
 
     def get_labels(self):
@@ -43,12 +45,16 @@ class JSONEndpoint:
         self.labels = Labels(kwargs.pop('labels', {}), logger=self.logger, _log_init=False)
         self.labels['endpoint'] = self.name
 
+        self.updated.set()
         self.get_data()
 
     def populate_metrics(self):
-        """ Populates the metrics for the JSON endpoint """
+        """
+        Populates the metrics for the JSON endpoint.
+        Sets the even when starting, and clears it when done.
+        """
         from .json_metric import JSONMetric
-        for metric in self.metrics.copy():
+        for metric in self.metrics:
             self.logger.debug("Removing stale metric: %s", metric)
             self.metrics.remove(metric)  # Remove the old metric
             del metric
@@ -65,6 +71,12 @@ class JSONEndpoint:
         Updates the JSON labels.
         Populates the metrics using the new labels and data.
         """
+        if not self.updated.is_set():
+            self.logger.warning("JSON request already in progress.")
+            return
+
+        self.updated.clear()
+
         from requests import get
         from json import loads
         from json.decoder import JSONDecodeError
@@ -89,6 +101,7 @@ class JSONEndpoint:
 
         self.update_json_labels()
         self.populate_metrics()
+        self.updated.set()
 
     def update_json_labels(self):
         """ Updates the JSON labels """
@@ -107,6 +120,7 @@ class JSONEndpoint:
         """
         self.logger.info("[%s] Getting updated metric data", self.name)
         self.get_data()
+        self.updated.wait()
         return '\n'.join(str(metric) for metric in self.metrics)
 
 
