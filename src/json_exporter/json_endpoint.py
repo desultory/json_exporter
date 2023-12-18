@@ -60,7 +60,11 @@ class JSONEndpoint:
                                            _log_init=False, logger=self.logger))
 
     def get_data(self):
-        """ Returns the data for the JSON endpoint """
+        """
+        Gets the data from the endpoint.
+        Updates the JSON labels.
+        Populates the metrics using the new labels and data.
+        """
         from requests import get
         from json import loads
         from json.decoder import JSONDecodeError
@@ -97,7 +101,10 @@ class JSONEndpoint:
         self.json_labels = JSONLabels(**kwargs)
 
     def __str__(self):
-        """ Returns the value of all the metrics """
+        """
+        Gets updated JSON data from the endpoint.
+        Returns the value of all the metrics.
+        """
         self.logger.info("[%s] Getting updated metric data", self.name)
         self.get_data()
         return '\n'.join(str(metric) for metric in self.metrics)
