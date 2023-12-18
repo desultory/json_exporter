@@ -26,10 +26,12 @@ class PrometheusRequest(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == '/metrics':
             self.logger.info("[%s:%d] Metrics request" % (*self.client_address,))
+            response = self.server.export().encode('utf-8')
             self.send_response(200)
             self.send_header("Content-type", "text/plain")
+            self.send_header("Content-Length", len(response))
             self.end_headers()
-            self.wfile.write(str(self.server).encode('utf-8'))
+            self.wfile.write(response)
             return
 
         self.logger.warning("[%s:%d] Invalid url access attempt: %s" % (*self.client_address, self.path))

@@ -14,7 +14,7 @@ class JSONMetric(Metric):
         self.data = json_data
         self.json_path = json_path
 
-    def get_value(self):
+    def _get_value(self):
         """ Get value based on json request """
         data = self.data.copy()
         for portion in self.json_path.split('.'):
@@ -24,6 +24,6 @@ class JSONMetric(Metric):
     def __getattribute__(self, name):
         """ Get value based on json request """
         if name == 'value' and hasattr(self, 'data'):
-            return self.get_value()
+            return self._get_value()
 
         return super().__getattribute__(name)

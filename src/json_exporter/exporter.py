@@ -41,7 +41,7 @@ class Exporter(ThreadingHTTPServer):
         self.logger.info("Read config file: %s", self.config_file)
         self.labels.update(self.config.get('labels', {}))
 
-    def __str__(self):
+    def export(self):
         """ Go through all metrics, turn them into a metric string for prometheus """
         from .metric import Metric
         return '\n'.join(str(metric) for metric in Metric.metrics.values())

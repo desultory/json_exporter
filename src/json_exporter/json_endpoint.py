@@ -82,7 +82,9 @@ class JSONEndpoint:
 
     def __str__(self):
         """ Returns the value of all the metrics """
-        return ''.join(str(metric) for metric in self.metrics)
+        self.logger.info("[%s] Getting updated metric data", self.name)
+        self.get_data()
+        return '\n'.join(str(metric) for metric in self.metrics)
 
 
 
