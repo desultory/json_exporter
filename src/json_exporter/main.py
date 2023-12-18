@@ -2,6 +2,7 @@
 
 from logging import getLogger, StreamHandler
 from argparse import ArgumentParser
+from signal import signal, SIGINT
 
 from json_exporter import JSONExporter
 
@@ -50,6 +51,14 @@ def main():
         kwargs['ip'] = args.address
 
     exporter = JSONExporter(**kwargs)
+
+    def handle_shutdown_signal(sig, frame):
+        logger.info(f"Received signal: {sig}. Shutting down...")
+        if hasattr(exporter, '__is_shut_down') and not exporter.__is_shut_down.is_set():
+            exporter.shutdown()
+        exit(0)
+
+    signal(SIGINT, handle_shutdown_signal)
     exporter.serve_forever()
 
 
