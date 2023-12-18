@@ -16,6 +16,9 @@ def main():
 
     argparser.add_argument('-v', '--version', action='store_true', help='Print the version and exit.')
 
+    argparser.add_argument('-p', '--port', type=int, nargs='?', help='Port to listen on.')
+    argparser.add_argument('-a', '--address', type=str, nargs='?', help='Address to listen on.')
+
     args = argparser.parse_args()
 
     if args.version:
@@ -39,7 +42,14 @@ def main():
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
-    exporter = JSONExporter(logger=logger)
+    kwargs = {'logger': logger}
+
+    if args.port:
+        kwargs['port'] = args.port
+    if args.address:
+        kwargs['ip'] = args.address
+
+    exporter = JSONExporter(**kwargs)
     exporter.serve_forever()
 
 

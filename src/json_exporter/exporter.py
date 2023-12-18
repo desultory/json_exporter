@@ -11,11 +11,18 @@ from .labels import Labels
 from .prometheus_request import PrometheusRequest
 
 
+DEFAULT_IP = '127.0.0.1'
+DEFAULT_PORT = 9809
+
+
 @loggify
 class Exporter(ThreadingHTTPServer):
     """
     Basic prometheus metric exporter class.
     Extends the ThreadingHTTPServer class.
+    Forces use of the PrometheusRequest RequestHandlerClass.
+    Reads a config.toml file to read the server port and ip.
+    If 'ip' and 'port' are passed as kwargs, they will override the config file.
     """
     def __init__(self, config_file='config.toml', labels=Labels(), *args, **kwargs):
         self.labels = Labels(dict_items=labels, logger=self.logger, _log_init=False)
@@ -23,13 +30,15 @@ class Exporter(ThreadingHTTPServer):
         self.read_config()
 
         kwargs['RequestHandlerClass'] = PrometheusRequest
-        kwargs['server_address'] = (self.config['listen_ip'], self.config['listen_port'])
+        ip = self.config['listen_ip'] if 'ip' not in kwargs else kwargs.pop('ip', DEFAULT_IP)
+        port = self.config['listen_port'] if 'port' not in kwargs else kwargs.pop('port', DEFAULT_PORT)
+        kwargs['server_address'] = (ip, port)
+
         super().__init__(*args, **kwargs)
 
     def __setattr__(self, name, value):
-        if name == 'labels' and not isinstance(value, dict):
+        if name == 'labels' and not isinstance(value, Labels):
             raise ValueError("Labels must be a dict.")
-
         super().__setattr__(name, value)
 
     def read_config(self):
@@ -42,6 +51,6 @@ class Exporter(ThreadingHTTPServer):
         self.labels.update(self.config.get('labels', {}))
 
     def export(self):
-        """ Go through all metrics, turn them into a metric string for prometheus """
+        """ Go through ALL DEFINED metrics, turn them into a metric string for prometheus."""
         from .metric import Metric
         return '\n'.join(str(metric) for metric in Metric.metrics.values())
