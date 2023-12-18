@@ -54,7 +54,7 @@ class JSONEndpoint:
         Sets the even when starting, and clears it when done.
         """
         from .json_metric import JSONMetric
-        for metric in self.metrics:
+        for metric in self.metrics.copy():
             self.logger.debug("Removing stale metric: %s", metric)
             self.metrics.remove(metric)  # Remove the old metric
             del metric
