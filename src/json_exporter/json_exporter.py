@@ -11,6 +11,10 @@ class JSONExporter(Exporter):
     """
     endpoints = []
 
+    def __init__(self, *args, **kwargs):
+        kwargs['port'] = kwargs.pop('port', 9809)
+        super().__init__(*args, **kwargs)
+
     def read_config(self):
         """ Override to read json.headers and json_endpoint from the config """
         super().read_config()
