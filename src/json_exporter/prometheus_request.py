@@ -18,10 +18,10 @@ class PrometheusRequest(BaseHTTPRequestHandler):
         """
         Overriding the default log_message method to use the class logger
         """
-        self.logger.info("%s - - [%s] %s" %
-                         (self.address_string(),
-                          self.log_date_time_string(),
-                          format % args))
+        self.logger.debug("%s - - [%s] %s" %
+                          (self.address_string(),
+                           self.log_date_time_string(),
+                           format % args))
 
     def do_GET(self):
         if self.path == '/metrics':
