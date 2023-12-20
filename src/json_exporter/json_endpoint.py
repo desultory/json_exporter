@@ -51,19 +51,15 @@ class JSONEndpoint:
     def populate_metrics(self):
         """
         Populates the metrics for the JSON endpoint.
-        Sets the even when starting, and clears it when done.
+        Resets the metrics list.
         """
         from .json_metric import JSONMetric
         from prometheus_exporter import Metric
-        for metric in self.metrics.copy():
-            self.logger.debug("Removing stale metric: %s", metric)
-            self.metrics.remove(metric)  # Remove the old metric
-            del metric
 
-        self.metrics.append(Metric('json_request_time', value=self._request_time,
-                                   help_text="Time taken to get the JSON data from the endpoint",
-                                   labels=self.get_labels(), metric_type='gauge',
-                                   logger=self.logger, _log_init=False))
+        self.metrics = [Metric('json_request_time', value=self._request_time,
+                               help_text="Time taken to get the JSON data from the endpoint",
+                               labels=self.get_labels(), metric_type='gauge',
+                               logger=self.logger, _log_init=False)]
 
         for metric, values in self.metric_definitions.items():
             metric_args = {'json_path': values['path'], 'metric_type': values['type']}
