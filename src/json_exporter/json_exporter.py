@@ -2,9 +2,10 @@
 JSON exporter class
 """
 
-from prometheus_exporter import Exporter
+from prometheus_exporter import Exporter, cached_exporter
 
 
+@cached_exporter
 class JSONExporter(Exporter):
     """
     JSON exporter class for prometheus metrics.
@@ -33,4 +34,4 @@ class JSONExporter(Exporter):
         for endpoint in self.endpoints:
             endpoint.get_data()
             metric_list.extend(endpoint.metrics)
-        return metric_list
+        return metric_list + super().get_metrics()
