@@ -1,47 +1,17 @@
 #!/usr/bin/env python3
 
-from logging import getLogger, StreamHandler
-from argparse import ArgumentParser
 from signal import signal
-
 from json_exporter import JSONExporter
-
-from zenlib.logging import ColorLognameFormatter
+from zenlib.util import init_logger, init_argparser, process_args
 
 
 def main():
-    argparser = ArgumentParser(prog='json_exporter', description='JSON Exporter for Prometheus')
-
-    argparser.add_argument('-d', '--debug', action='store_true', help='Debug mode.')
-    argparser.add_argument('-dd', '--verbose', action='store_true', help='Verbose debug mode.')
-
-    argparser.add_argument('-v', '--version', action='store_true', help='Print the version and exit.')
-
+    logger = init_logger(__package__)
+    argparser = init_argparser(prog=__package__, description='JSON Exporter for Prometheus')
     argparser.add_argument('-p', '--port', type=int, nargs='?', help='Port to listen on.')
     argparser.add_argument('-a', '--address', type=str, nargs='?', help='Address to listen on.')
 
-    args = argparser.parse_args()
-
-    if args.version:
-        from importlib.metadata import version
-        print(f"{__package__} {version(__package__)}")
-        exit(0)
-
-    logger = getLogger(__package__)
-
-    if args.verbose:
-        logger.setLevel(5)
-        formatter = ColorLognameFormatter('%(levelname)s | %(name)-42s | %(message)s')
-    elif args.debug:
-        logger.setLevel(10)
-        formatter = ColorLognameFormatter('%(levelname)s | %(name)-42s | %(message)s')
-    else:
-        logger.setLevel(20)
-        formatter = ColorLognameFormatter()
-
-    handler = StreamHandler()
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+    args = process_args(argparser, logger=logger)
 
     kwargs = {'logger': logger}
 

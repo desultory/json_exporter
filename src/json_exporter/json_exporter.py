@@ -1,15 +1,9 @@
-"""
-JSON exporter class
-"""
-
 from prometheus_exporter import Exporter, cached_exporter
 
 
 @cached_exporter
 class JSONExporter(Exporter):
-    """
-    JSON exporter class for prometheus metrics.
-    """
+    """ JSON exporter class for prometheus metrics. """
     endpoints = []
 
     def __init__(self, *args, **kwargs):

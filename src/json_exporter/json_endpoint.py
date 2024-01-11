@@ -1,28 +1,17 @@
-"""
-Defines the JSON endpoint for the JSON exporter
-"""
-
-from threading import Event
-
 from zenlib.logging import loggify
 
 
 @loggify
 class JSONEndpoint:
-    """
-    Defines the JSON endpoint for the JSON exporter
-    """
+    """ Defines the JSON endpoint for the JSON exporter """
     endpoints = {}
 
     def __init__(self, name, *args, **kwargs):
-        """
-        Initializes the JSON endpoint
-        """
+        """ Initializes the JSON endpoint """
         if name in self.endpoints:
             raise ValueError("JSON endpoint already exists: %s" % name)
         self.name = name
         self.metrics = []
-        self.updated = Event()
         self.parse_kwargs(kwargs)
 
     def get_labels(self):
@@ -45,8 +34,6 @@ class JSONEndpoint:
         self.metric_definitions = kwargs.pop('metrics')
         self.labels = Labels(kwargs.pop('labels', {}), logger=self.logger, _log_init=False)
         self.labels['endpoint'] = self.name
-
-        self.updated.set()
 
     def populate_metrics(self):
         """
@@ -73,12 +60,6 @@ class JSONEndpoint:
         Updates the JSON labels.
         Populates the metrics using the new labels and data.
         """
-        if not self.updated.is_set():
-            self.logger.warning("JSON request already in progress.")
-            return
-
-        self.updated.clear()
-
         from requests import get
         from json import loads
         from json.decoder import JSONDecodeError
@@ -96,7 +77,6 @@ class JSONEndpoint:
 
         if request.status_code != 200:
             raise ValueError("[%s] Request failed: %s" % (request.status_code, request.text))
-
         self.logger.debug("Got data: %s", request.text)
 
         try:
@@ -106,7 +86,6 @@ class JSONEndpoint:
 
         self.update_json_labels()
         self.populate_metrics()
-        self.updated.set()
 
     def update_json_labels(self):
         """ Updates the JSON labels """
@@ -125,7 +104,6 @@ class JSONEndpoint:
         """
         self.logger.info("[%s] Getting updated metric data", self.name)
         self.get_data()
-        self.updated.wait()
         return '\n'.join(str(metric) for metric in self.metrics)
 
 

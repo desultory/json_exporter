@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "json_exporter"
-version = "0.5.01"
+version = "0.6.0"
 authors = [
   { name="Desultory", email="dev@pyl.onl" },
 ]
 description = "A Python library for exporting JSON data as metrics for Prometheus"
 readme = "readme.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
@@ -18,7 +18,7 @@ classifiers = [
 ]
 dependencies = [
     "prometheus_exporter >= 0.7.1",
-    "zenlib >= 1.1.1"
+    "zenlib >= 1.6.0"
 ]
 
 [project.scripts]

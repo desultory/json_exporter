@@ -26,9 +26,7 @@ class JSONLabels(Labels):
                 self[name] = self[name]
 
     def __getitem__(self, name):
-        """
-        Gets an item value based on the json_data and json_paths
-        """
+        """ Gets an item value based on the json_data and json_paths """
         if name not in self.json_paths:
             raise ValueError("JSON path not defined for: %s" % name)
 
