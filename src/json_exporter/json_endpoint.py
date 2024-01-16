@@ -16,9 +16,7 @@ class JSONEndpoint:
 
     def get_labels(self):
         """ Returns the labels for the JSON endpoint """
-        labels = self.labels.copy()
-        labels.update(self.json_labels)
-        return labels
+        return self.labels.copy() | self.json_labels
 
     def parse_kwargs(self, kwargs):
         """
@@ -30,6 +28,7 @@ class JSONEndpoint:
 
         self.endpoint = kwargs.pop('endpoint')
         self.headers = kwargs.pop('headers', {})
+        self.post_data = kwargs.pop('post_data', {})
         self.json_paths = kwargs.pop('json_labels', {})
         self.metric_definitions = kwargs.pop('metrics')
         self.labels = Labels(kwargs.pop('labels', {}), logger=self.logger, _log_init=False)
@@ -54,16 +53,20 @@ class JSONEndpoint:
                                            **metric_args, **values,
                                            _log_init=False, logger=self.logger))
 
-    def get_data(self):
+    def get_data(self, label_filter={}):
         """
         Gets the data from the endpoint.
         Updates the JSON labels.
         Populates the metrics using the new labels and data.
         """
-        from requests import get
+        from requests import get, post
         from json import loads
         from json.decoder import JSONDecodeError
         from time import time
+
+        if self.metrics and not self.labels.filter_metrics(self.metrics, label_filter):
+            self.logger.info("[%s] All metrics were filtered: %s" % (self.name, label_filter))
+            return
 
         self.logger.info("Getting data from endpoint: %s", self.endpoint)
 
@@ -72,8 +75,13 @@ class JSONEndpoint:
             kwargs['headers'] = self.headers
 
         start_time = time()
-        request = get(self.endpoint, **kwargs)
+        if self.post_data:
+            self.logger.debug("POST data: %s", self.post_data)
+            request = post(self.endpoint, json=self.post_data, **kwargs)
+        else:
+            request = get(self.endpoint, **kwargs)
         self._request_time = time() - start_time
+        self.logger.debug("Request time: %s", self._request_time)
 
         if request.status_code != 200:
             raise ValueError("[%s] Request failed: %s" % (request.status_code, request.text))
