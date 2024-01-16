@@ -49,13 +49,13 @@ class JSONEndpoint:
                                            **metric_args, **values,
                                            _log_init=False, logger=self.logger))
 
-    def get_data(self, label_filter={}):
+    async def get_data(self, label_filter={}):
         """
         Gets the data from the endpoint.
         Updates the JSON labels.
         Populates the metrics using the new labels and data.
         """
-        from requests import get, post
+        from aiohttp import ClientSession
         from json import loads
         from json.decoder import JSONDecodeError
         from time import time
@@ -71,20 +71,21 @@ class JSONEndpoint:
             kwargs['headers'] = self.headers
 
         start_time = time()
-        if self.post_data:
-            self.logger.debug("POST data: %s", self.post_data)
-            request = post(self.endpoint, json=self.post_data, **kwargs)
-        else:
-            request = get(self.endpoint, **kwargs)
+        async with ClientSession() as session:
+            if self.post_data:
+                async with session.post(self.endpoint, json=self.post_data, **kwargs) as request:
+                    self.logger.debug("POST data: %s", self.post_data)
+                    request_data = await request.text()
+            else:
+                async with session.get(self.endpoint, **kwargs) as request:
+                    request_data = await request.text()
         self._request_time = time() - start_time
-        self.logger.debug("Request time: %s", self._request_time)
+        self.logger.info("[%s] Request time: %s" % (self.endpoint, self._request_time))
 
-        if request.status_code != 200:
-            raise ValueError("[%s] Request failed: %s" % (request.status_code, request.text))
-        self.logger.debug("Got data: %s", request.text)
+        self.logger.debug("Got data: %s", request_data)
 
         try:
-            self.data = loads(request.text)
+            self.data = loads(request_data)
         except JSONDecodeError as error:
             raise ValueError("Failed to decode JSON: %s" % error)
 

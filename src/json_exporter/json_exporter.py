@@ -1,4 +1,5 @@
 from prometheus_exporter import Exporter, cached_exporter
+from asyncio import TaskGroup
 
 
 @cached_exporter
@@ -27,11 +28,13 @@ class JSONExporter(Exporter):
             labels |= endpoint.labels
         return labels
 
-    def get_metrics(self, label_filter={}):
+    async def get_metrics(self, label_filter={}):
         """ Get metrics list from each endpoint, add them together """
         metric_list = []
+        async with TaskGroup() as tg:
+            for endpoint in self.endpoints:
+                self.logger.debug("Creating data task for: %s", endpoint.name)
+                tg.create_task(endpoint.get_data(label_filter=label_filter))
         for endpoint in self.endpoints:
-            self.logger.debug("Getting metrics from endpoint: %s", endpoint.name)
-            endpoint.get_data(label_filter=label_filter)
-            metric_list.extend(endpoint.metrics)
-        return metric_list + super().get_metrics(label_filter=label_filter)
+            metric_list += endpoint.metrics
+        return metric_list + await super().get_metrics(label_filter=label_filter)
