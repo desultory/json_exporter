@@ -1,8 +1,7 @@
-from prometheus_exporter import Exporter, cached_exporter
+from prometheus_exporter import Exporter
 from asyncio import TaskGroup
 
 
-@cached_exporter
 class JSONExporter(Exporter):
     """ JSON exporter class for prometheus metrics. """
     def __init__(self, *args, **kwargs):
@@ -19,7 +18,7 @@ class JSONExporter(Exporter):
         self.endpoints = []
         # Iterate over each defined endpoint
         for endpoint_name, config in self.config['json'].items():
-            self.endpoints.append(JSONEndpoint(name=endpoint_name,
+            self.endpoints.append(JSONEndpoint(name=endpoint_name, config_file=self.config_file,
                                                **config, logger=self.logger, _log_init=False))
 
     def get_labels(self):
@@ -28,13 +27,20 @@ class JSONExporter(Exporter):
             labels |= endpoint.labels
         return labels
 
-    async def get_metrics(self, label_filter={}):
+    async def get_metrics(self, *args, **kwargs):
         """ Get metrics list from each endpoint, add them together """
-        metric_list = []
+        if super_metrics := await super().get_metrics(*args, **kwargs):
+            metric_list = [super_metrics]
+        else:
+            metric_list = []
         async with TaskGroup() as tg:
             for endpoint in self.endpoints:
                 self.logger.debug("Creating data task for: %s", endpoint.name)
-                tg.create_task(endpoint.get_data(label_filter=label_filter))
+                tg.create_task(endpoint.get_metrics(*args, **kwargs))
+
         for endpoint in self.endpoints:
-            metric_list += endpoint.metrics
-        return metric_list + await super().get_metrics(label_filter=label_filter)
+            if endpoint.metrics:
+                metric_list += endpoint.metrics
+
+        self.logger.debug("Got metrics: %s", metric_list)
+        self.metrics = metric_list

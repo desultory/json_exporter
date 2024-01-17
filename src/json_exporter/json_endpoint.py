@@ -1,13 +1,13 @@
-from zenlib.logging import loggify
+from prometheus_exporter import Exporter, cached_exporter
 
 
-@loggify
-class JSONEndpoint:
+@cached_exporter
+class JSONEndpoint(Exporter):
     """ Defines the JSON endpoint for the JSON exporter """
     def __init__(self, name, *args, **kwargs):
         """ Initializes the JSON endpoint """
+        super().__init__(*args, **kwargs)
         self.name = name
-        self.metrics = []
         self.parse_kwargs(kwargs)
 
     def get_labels(self):
@@ -20,14 +20,11 @@ class JSONEndpoint:
         Makes the intitial JSON request, to be used for json_labels.
         Adds all metrics to self.metrics.
         """
-        from prometheus_exporter import Labels
-
         self.endpoint = kwargs.pop('endpoint')
         self.headers = kwargs.pop('headers', {})
         self.post_data = kwargs.pop('post_data', {})
         self.json_paths = kwargs.pop('json_labels', {})
         self.metric_definitions = kwargs.pop('metrics')
-        self.labels = Labels(kwargs.pop('labels', {}), logger=self.logger, _log_init=False)
         self.labels['endpoint'] = self.name
 
     def populate_metrics(self):
@@ -36,12 +33,6 @@ class JSONEndpoint:
         Resets the metrics list.
         """
         from .json_metric import JSONMetric
-        from prometheus_exporter import Metric
-
-        self.metrics = [Metric('json_request_time', value=self._request_time,
-                               help_text="Time taken to get the JSON data from the endpoint",
-                               labels=self.get_labels(), metric_type='gauge',
-                               logger=self.logger, _log_init=False)]
 
         for metric, values in self.metric_definitions.items():
             metric_args = {'json_path': values['path'], 'metric_type': values['type']}
@@ -49,21 +40,9 @@ class JSONEndpoint:
                                            **metric_args, **values,
                                            _log_init=False, logger=self.logger))
 
-    async def get_data(self, label_filter={}):
-        """
-        Gets the data from the endpoint.
-        Updates the JSON labels.
-        Populates the metrics using the new labels and data.
-        """
+    async def get_data(self):
         from aiohttp import ClientSession
-        from json import loads
-        from json.decoder import JSONDecodeError
         from time import time
-
-        if self.metrics and not await self.labels.filter_metrics(self.metrics, label_filter):
-            self.logger.info("[%s] All metrics were filtered: %s" % (self.name, label_filter))
-            return
-
         self.logger.info("Getting data from endpoint: %s", self.endpoint)
 
         kwargs = {}
@@ -74,23 +53,48 @@ class JSONEndpoint:
         async with ClientSession() as session:
             if self.post_data:
                 async with session.post(self.endpoint, json=self.post_data, **kwargs) as request:
-                    self.logger.debug("POST data: %s", self.post_data)
+                    self.logger.debug("[%s] POST data: %s" % (self.endpoint, self.post_data))
                     request_data = await request.text()
             else:
                 async with session.get(self.endpoint, **kwargs) as request:
+                    self.logger.debug("[%s] GET data: %s" % (self.endpoint, kwargs))
                     request_data = await request.text()
         self._request_time = time() - start_time
         self.logger.info("[%s] Request time: %s" % (self.endpoint, self._request_time))
 
         self.logger.debug("Got data: %s", request_data)
+        return request_data
+
+    async def get_metrics(self, label_filter={}, *args, **kwargs):
+        """
+        Gets the data from the endpoint.
+        Updates the JSON labels.
+        Populates the metrics using the new labels and data.
+        """
+        for key, value in label_filter.items():
+            if key in self.labels and self.labels[key] == value:
+                break
+        else:
+            if label_filter:
+                self.logger.info("Skipping data request because filter did not match: %s", label_filter)
+                return
+
+        from prometheus_exporter import Metric
+        from json import loads
+        from json.decoder import JSONDecodeError
 
         try:
-            self.data = loads(request_data)
+            self.data = loads(await self.get_data())
         except JSONDecodeError as error:
             raise ValueError("Failed to decode JSON: %s" % error)
 
         self.update_json_labels()
+        self.metrics = [Metric('json_request_time', value=self._request_time,
+                               help_text="Time taken to get the JSON data from the endpoint",
+                               metric_type='gauge', labels=self.get_labels(),
+                               logger=self.logger, _log_init=False)]
         self.populate_metrics()
+        return self.metrics
 
     def update_json_labels(self):
         """ Updates the JSON labels """
@@ -107,8 +111,6 @@ class JSONEndpoint:
         Gets updated JSON data from the endpoint.
         Returns the value of all the metrics.
         """
-        self.logger.info("[%s] Getting updated metric data", self.name)
-        self.get_data()
         return '\n'.join(str(metric) for metric in self.metrics)
 
 
