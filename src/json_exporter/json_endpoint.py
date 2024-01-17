@@ -76,7 +76,8 @@ class JSONEndpoint(Exporter):
                 break
         else:
             if label_filter:
-                self.logger.info("Skipping data request because filter did not match: %s", label_filter)
+                self.logger.debug("Skipping data request because filter did not match: %s", label_filter)
+                self.logger.debug("Labels: %s", self.labels)
                 return
 
         from prometheus_exporter import Metric
