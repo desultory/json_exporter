@@ -60,7 +60,7 @@ class JSONEndpoint:
         from json.decoder import JSONDecodeError
         from time import time
 
-        if self.metrics and not self.labels.filter_metrics(self.metrics, label_filter):
+        if self.metrics and not await self.labels.filter_metrics(self.metrics, label_filter):
             self.logger.info("[%s] All metrics were filtered: %s" % (self.name, label_filter))
             return
 
