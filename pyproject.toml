@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "json_exporter"
-version = "0.11.0"
+version = "0.11.2"
 authors = [
   { name="Desultory", email="dev@pyl.onl" },
 ]
@@ -17,9 +17,9 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "prometheus_exporter >= 0.11.2",
+    "prometheus_exporter >= 0.11.3",
     "aiohttp >= 3.9.1",
-    "zenlib >= 1.6.2"
+    "zenlib >= 1.6.4"
 ]
 
 [project.scripts]

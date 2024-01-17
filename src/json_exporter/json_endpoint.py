@@ -12,9 +12,10 @@ class JSONEndpoint(Exporter):
 
     def get_labels(self):
         """ Returns the labels for the JSON endpoint """
-        return self.labels.copy() | self.json_labels
+        return self.labels | self._json_labels
 
     def read_config(self):
+        """ Reads the config file using the parent method, adds json specific config """
         super().read_config()
         if self.name not in self.config['json']:
             raise ValueError("Endpoint not defined in config: %s" % self.name)
@@ -98,12 +99,12 @@ class JSONEndpoint(Exporter):
     def update_json_labels(self):
         """ Updates the JSON labels """
         from .json_labels import JSONLabels
-        self.logger.debug("[%s] Updating JSON labels", self.name)
+        self.logger.debug("[%s] Updating JSON labels for: %s" % (self.name, self.json_labels))
 
         kwargs = {'json_paths': self.json_labels, 'json_data': self.data,
                   'logger': self.logger, '_log_init': False}
 
-        self.json_labels = JSONLabels(**kwargs)
+        self._json_labels = JSONLabels(**kwargs)
 
     def __str__(self):
         """

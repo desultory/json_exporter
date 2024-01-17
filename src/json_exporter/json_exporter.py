@@ -42,5 +42,5 @@ class JSONExporter(Exporter):
             if endpoint.metrics:
                 metric_list += endpoint.metrics
 
-        self.logger.debug("Got metrics: %s", metric_list)
+        self.logger.debug("Got %d metrics", len(metric_list))
         self.metrics = metric_list

@@ -32,7 +32,11 @@ class JSONLabels(Labels):
 
         value = self.data.copy()
         for key in self.json_paths[name].split('.'):
-            value = value[key]
+            try:
+                value = value[key]
+            except KeyError:
+                self.logger.warning("Unable to resolve JSON path: %s" % self.json_paths[name])
+                self.logger.debug("JSON data: %a" % self.data)
         self.logger.debug("[%s]Resolved JSON data from path: %s -> %a" % (name, self.json_paths[name], value))
         return value
 
