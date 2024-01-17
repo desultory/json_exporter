@@ -17,9 +17,9 @@ class JSONExporter(Exporter):
         from .json_endpoint import JSONEndpoint
         self.endpoints = []
         # Iterate over each defined endpoint
-        for endpoint_name, config in self.config['json'].items():
+        for endpoint_name in self.config['json']:
             self.endpoints.append(JSONEndpoint(name=endpoint_name, config_file=self.config_file,
-                                               **config, logger=self.logger, _log_init=False))
+                                               logger=self.logger, _log_init=False))
 
     def get_labels(self):
         labels = super().get_labels()

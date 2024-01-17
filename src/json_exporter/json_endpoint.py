@@ -6,26 +6,24 @@ class JSONEndpoint(Exporter):
     """ Defines the JSON endpoint for the JSON exporter """
     def __init__(self, name, *args, **kwargs):
         """ Initializes the JSON endpoint """
-        super().__init__(*args, **kwargs)
         self.name = name
-        self.parse_kwargs(kwargs)
+        super().__init__(*args, **kwargs)
+        self.labels['endpoint'] = self.name
 
     def get_labels(self):
         """ Returns the labels for the JSON endpoint """
         return self.labels.copy() | self.json_labels
 
-    def parse_kwargs(self, kwargs):
-        """
-        Parses the kwargs passed during initialization.
-        Makes the intitial JSON request, to be used for json_labels.
-        Adds all metrics to self.metrics.
-        """
-        self.endpoint = kwargs.pop('endpoint')
-        self.headers = kwargs.pop('headers', {})
-        self.post_data = kwargs.pop('post_data', {})
-        self.json_paths = kwargs.pop('json_labels', {})
-        self.metric_definitions = kwargs.pop('metrics')
-        self.labels['endpoint'] = self.name
+    def read_config(self):
+        super().read_config()
+        if self.name not in self.config['json']:
+            raise ValueError("Endpoint not defined in config: %s" % self.name)
+
+        self.endpoint = self.config['json'][self.name]['endpoint']
+        self.metric_definitions = self.config['json'][self.name]['metrics']
+
+        for config_key in ['headers', 'post_data', 'json_labels']:
+            setattr(self, config_key, self.config['json'][self.name].get(config_key, {}))
 
     def populate_metrics(self):
         """
@@ -102,7 +100,7 @@ class JSONEndpoint(Exporter):
         from .json_labels import JSONLabels
         self.logger.debug("[%s] Updating JSON labels", self.name)
 
-        kwargs = {'json_paths': self.json_paths, 'json_data': self.data,
+        kwargs = {'json_paths': self.json_labels, 'json_data': self.data,
                   'logger': self.logger, '_log_init': False}
 
         self.json_labels = JSONLabels(**kwargs)
