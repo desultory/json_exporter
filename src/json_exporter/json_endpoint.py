@@ -61,10 +61,9 @@ class JSONEndpoint(Exporter):
         """ Get fresh json_data """
         from aiohttp import ClientSession
         from json import loads
-        from json.decoder import JSONDecodeError
         from time import time
 
-        self.logger.info("Getting data from endpoint: %s", self.endpoint)
+        self.logger.info("[%s] Getting data from endpoint: %s" % (self.name, self.endpoint))
         kwargs = {}
         if self.headers:
             kwargs['headers'] = self.headers
@@ -83,23 +82,25 @@ class JSONEndpoint(Exporter):
         self.logger.info("[%s] Request time: %s" % (self.endpoint, self.request_time))
 
         self.logger.debug("Got data: %s", request_data)
-        try:
-            self.json_data = loads(request_data)
-        except JSONDecodeError as error:
-            raise ValueError("Failed to decode JSON: %s" % error)
+        self.json_data = loads(request_data)
 
     async def get_metrics(self, label_filter={}):
         """
         Gets the data from the endpoint.
         Populates the metrics using the new labels and data.
         """
+        from json.decoder import JSONDecodeError
         for label, value in label_filter.items():
             labels = self.get_labels()
             if label not in labels or labels[label] != value:
                 self.logger.debug("[%s] Label filter does not match existing label: %s=%s" % (self.name, label, value))
                 return
-
-        await self.get_data()
+        try:
+            await self.get_data()
+        except JSONDecodeError:
+            self.logger.error("[%s] Failed to decode JSON data: %s" % (self.name, self.json_data))
+            return
         await self.update_json_labels()
         await self.populate_metrics()
+        self.logger.debug("[%s] Got %d metrics" % (self.name, len(self.metrics)))
         return self.metrics

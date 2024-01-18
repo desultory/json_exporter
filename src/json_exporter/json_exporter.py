@@ -6,7 +6,7 @@ class JSONExporter(Exporter):
     """ JSON exporter class for prometheus metrics. """
     def __init__(self, *args, **kwargs):
         self.endpoints = []
-        kwargs['port'] = kwargs.pop('port', 9809)
+        kwargs['listen_port'] = kwargs.pop('listen_port', 9809)
         super().__init__(*args, **kwargs)
 
     def read_config(self):
