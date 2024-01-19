@@ -17,7 +17,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "prometheus_exporter >= 0.12.5",
+    "prometheus_exporter >= 0.13.0",
     "aiohttp >= 3.9.1",
     "zenlib >= 1.6.5"
 ]
