@@ -17,7 +17,7 @@ class JSONEndpoint(Exporter):
 
     async def update_json_labels(self):
         """ Updates the JSON labels """
-        from .json_labels import JSONLabels
+        from .json_labels import JSONLabels, MissingJSONKey
         if not getattr(self, 'json_label_paths', None):
             self.logger.debug("[%s] No JSON labels defined" % self.name)
             return
@@ -27,7 +27,12 @@ class JSONEndpoint(Exporter):
         kwargs = {'json_paths': self.json_label_paths, 'json_data': self.json_data,
                   'logger': self.logger, '_log_init': False}
 
-        self.json_labels = JSONLabels(**kwargs)
+        try:
+            self.json_labels = JSONLabels(**kwargs)
+        except MissingJSONKey as e:
+            self.logger.error("[%s] Failed to find JSON path: %s, removing" % (self.name, e))
+            self.json_label_paths.pop(e.key)
+            await self.update_json_labels()
 
     def read_config(self):
         """ Reads the config file using the parent method, adds json specific config """

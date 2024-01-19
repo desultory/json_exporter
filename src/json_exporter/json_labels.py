@@ -6,6 +6,12 @@ Like Labels, but resolves the value from json data.
 from prometheus_exporter import Labels
 
 
+class MissingJSONKey(Exception):
+    def __init__(self, key):
+        super().__init__("JSON path not defined for: %s" % key)
+        self.key = key
+
+
 class JSONLabels(Labels):
     """
     JSON Labels class
@@ -34,9 +40,8 @@ class JSONLabels(Labels):
         for key in self.json_paths[name].split('.'):
             try:
                 value = value[key]
-            except KeyError:
-                self.logger.warning("Unable to resolve JSON path: %s" % self.json_paths[name])
-                self.logger.debug("JSON data: %a" % self.data)
+            except KeyError as e:
+                raise MissingJSONKey(name) from e
         self.logger.debug("[%s]Resolved JSON data from path: %s -> %a" % (name, self.json_paths[name], value))
         return value
 
