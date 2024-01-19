@@ -42,6 +42,9 @@ class JSONEndpoint(Exporter):
 
         self.endpoint = self.config['json'][self.name]['endpoint']
         self.metric_definitions = self.config['json'][self.name]['metrics']
+        if 'cache_life' in self.config['json'][self.name]:
+            self.cache_life = self.config['json'][self.name]['cache_life']
+            self.logger.info("[%s] Setting cache life to: %s" % (self.name, self.cache_life))
 
         for config_key in ['headers', 'post_data', 'params']:
             setattr(self, config_key, self.config['json'][self.name].get(config_key, {}))
