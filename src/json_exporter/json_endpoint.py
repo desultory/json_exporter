@@ -18,6 +18,10 @@ class JSONEndpoint(Exporter):
     async def update_json_labels(self):
         """ Updates the JSON labels """
         from .json_labels import JSONLabels
+        if not getattr(self, 'json_label_paths', None):
+            self.logger.debug("[%s] No JSON labels defined" % self.name)
+            return
+
         self.logger.debug("[%s] Updating JSON labels for: %s" % (self.name, self.json_label_paths))
 
         kwargs = {'json_paths': self.json_label_paths, 'json_data': self.json_data,
@@ -34,7 +38,7 @@ class JSONEndpoint(Exporter):
         self.endpoint = self.config['json'][self.name]['endpoint']
         self.metric_definitions = self.config['json'][self.name]['metrics']
 
-        for config_key in ['headers', 'post_data']:
+        for config_key in ['headers', 'post_data', 'params']:
             setattr(self, config_key, self.config['json'][self.name].get(config_key, {}))
 
         if json_labels := self.config['json'][self.name].get('json_labels', {}):
@@ -52,7 +56,7 @@ class JSONEndpoint(Exporter):
                                logger=self.logger, _log_init=False)]
 
         for metric, values in self.metric_definitions.items():
-            metric_args = {'json_path': values['path'], 'metric_type': values['type']}
+            metric_args = {'json_path': values['path'], 'metric_type': values.get('type')}
             self.metrics += [JSONMetric(metric, labels=self.get_labels(), json_data=self.json_data,
                                         **metric_args, **values,
                                         _log_init=False, logger=self.logger)]
@@ -67,6 +71,8 @@ class JSONEndpoint(Exporter):
         kwargs = {}
         if self.headers:
             kwargs['headers'] = self.headers
+        if self.params:
+            kwargs['params'] = self.params
 
         start_time = time()
         async with ClientSession() as session:
