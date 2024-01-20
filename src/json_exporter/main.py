@@ -1,24 +1,13 @@
 #!/usr/bin/env python3
 
 from json_exporter import JSONExporter
-from zenlib.util import init_logger, init_argparser, process_args
+from zenlib.util import get_kwargs
+from prometheus_exporter import DEFAULT_EXPORTER_ARGS
 
 
 def main():
-    logger = init_logger(__package__)
-    argparser = init_argparser(prog=__package__, description='JSON Exporter for Prometheus')
-
-    argparser.add_argument('-p', '--port', type=int, nargs='?', help='Port to listen on.')
-    argparser.add_argument('-a', '--address', type=str, nargs='?', help='Address to listen on.')
-
-    args = process_args(argparser, logger=logger)
-
-    kwargs = {'logger': logger}
-
-    if args.port:
-        kwargs['listen_port'] = args.port
-    if args.address:
-        kwargs['listen_ip'] = args.address
+    kwargs = get_kwargs(package=__package__, description='JSON Exporter for Prometheus',
+                        arguments=DEFAULT_EXPORTER_ARGS)
 
     exporter = JSONExporter(**kwargs)
     exporter.start()
