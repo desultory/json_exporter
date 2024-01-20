@@ -34,10 +34,18 @@ class JSONExporter(Exporter):
 
         async with TaskGroup() as tg:
             for endpoint in self.endpoints:
+                if filtered_endpoints := label_filter.get('endpoint', None):
+                    if endpoint.name not in filtered_endpoints:
+                        self.logger.debug("Skipping filtered endpoint: %s", endpoint.name)
+                        continue
                 self.logger.debug("Creating data task for: %s", endpoint.name)
                 tg.create_task(endpoint.get_metrics(label_filter=label_filter))
 
         for endpoint in self.endpoints:
+            if filtered_endpoints := label_filter.get('endpoint', None):
+                if endpoint.name not in filtered_endpoints:
+                    self.logger.log(5, "Skipping metrics for filtered endpoint: %s", endpoint.name)
+                    continue
             if metrics := getattr(endpoint, 'metrics', None):
                 metric_list += metrics
 
