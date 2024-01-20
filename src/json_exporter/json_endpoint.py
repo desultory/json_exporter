@@ -30,9 +30,13 @@ class JSONEndpoint(Exporter):
         try:
             self.json_labels = JSONLabels(**kwargs)
         except MissingJSONKey as e:
+            original_labels = self.json_label_paths.copy()
             self.logger.error("[%s] Failed to find JSON path: %s, removing" % (self.name, e))
-            self.json_label_paths.pop(e.key)
+            removed_key = self.json_label_paths.pop(e.key)
+            self.logger.warning("[%s] Removed JSON path: %s" % (self.name, removed_key))
             await self.update_json_labels()
+            self.logger.info("[%s] Resetting JSON labels to: %s" % (self.name, original_labels))
+            self.json_label_paths = original_labels
 
     def read_config(self):
         """ Reads the config file using the parent method, adds json specific config """
