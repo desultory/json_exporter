@@ -116,7 +116,10 @@ class JSONEndpoint(Exporter):
         try:
             await self.get_data()
         except JSONDecodeError:
-            self.logger.error("[%s] Failed to decode JSON data: %s" % (self.name, self.json_data))
+            if json_data := getattr(self, 'json_data', None):
+                self.logger.error("[%s] Failed to decode JSON data: %s" % (self.name, json_data))
+            else:
+                self.logger.error("[%s] Failed to decode JSON data." % self.name)
             return
         await self.update_json_labels()
         await self.populate_metrics()
