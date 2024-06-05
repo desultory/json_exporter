@@ -1,0 +1,28 @@
+#!/sbin/openrc-run
+# Distributed under the terms of the GNU General Public License v2
+
+description="Prometheus JSON exporter"
+
+command="json_exporter"
+config_file="/etc/json_exporter/config.toml"
+command_args="-a 0.0.0.0 ${config_file}"  # change if you don't want it listening on all interfaces
+pidfile=${pidfile:-"/run/${RC_SVCNAME}.pid"}
+command_background="true"  # It stays in the foreground
+log_dir="/var/log/${RC_SVCNAME}"
+start_stop_daemon_args="--stdout ${log_dir}/${RC_SVCNAME}.log --stderr ${log_dir}/${RC_SVCNAME}.log"
+
+depend() {
+	after net
+}
+
+
+start_pre() {  # This dir should be created by the ebuild
+	checkpath -q -d -m 0755 "$log_dir"
+}
+
+reload() {
+	einfo "Reloading ${RC_SVCNAME}"
+	ebegin "Sending SIGHUP to ${RC_SVCNAME}"
+	start-stop-daemon --signal HUP --pidfile "${pidfile}"
+	eend $?
+}
