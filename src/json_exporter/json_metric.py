@@ -10,10 +10,12 @@ class JSONMetric(Metric):
 
     def _value(self):
         """ Get value based on json request """
-        if not hasattr(self, 'data'):
-            return
-
-        data = self.data.copy()
-        for portion in self.json_path.split('.'):
-            data = data.get(portion)
-        return data
+        if data := self.data:
+            data = data.copy()
+            for portion in self.json_path.split('.'):
+                if d := data.get(portion):
+                    data = d
+                else:
+                    self.logger.debug("Data: %s", data)
+                    return self.logger.warning("JSON path not found: %s", self.json_path)
+            return data
