@@ -13,9 +13,10 @@ from .json_metric import JSONMetric
 class JSONEndpoint(Exporter):
     """Defines the JSON endpoint for the JSON exporter"""
 
-    def __init__(self, name, *args, **kwargs):
-        """Initializes the JSON endpoint"""
-        self.name = name
+    def __init__(self, *args, **kwargs):
+        """Initializes the JSON endpoint.
+        A name must be set, corresponding to a config section.
+        """
         super().__init__(*args, **kwargs)
         self.labels["endpoint"] = self.name
 
