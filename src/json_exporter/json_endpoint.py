@@ -1,31 +1,43 @@
+from json import loads
+from json.decoder import JSONDecodeError
+from time import time
+
+from aiohttp import ClientSession
 from prometheus_exporter import Exporter, Metric, cached_exporter
+
+from .json_labels import JSONLabels, MissingJSONKey
+from .json_metric import JSONMetric
 
 
 @cached_exporter
 class JSONEndpoint(Exporter):
-    """ Defines the JSON endpoint for the JSON exporter """
+    """Defines the JSON endpoint for the JSON exporter"""
+
     def __init__(self, name, *args, **kwargs):
-        """ Initializes the JSON endpoint """
+        """Initializes the JSON endpoint"""
         self.name = name
         super().__init__(*args, **kwargs)
-        self.labels['endpoint'] = self.name
+        self.labels["endpoint"] = self.name
 
     def get_labels(self):
-        if getattr(self, 'json_labels', None):
+        if getattr(self, "json_labels", None):
             return self.labels | self.json_labels
         return self.labels
 
     async def update_json_labels(self):
-        """ Updates the JSON labels """
-        from .json_labels import JSONLabels, MissingJSONKey
-        if not getattr(self, 'json_label_paths', None):
+        """Updates the JSON labels"""
+        if not getattr(self, "json_label_paths", None):
             self.logger.debug("[%s] No JSON labels defined" % self.name)
             return
 
         self.logger.debug("[%s] Updating JSON labels for: %s" % (self.name, self.json_label_paths))
 
-        kwargs = {'json_paths': self.json_label_paths, 'json_data': self.json_data,
-                  'logger': self.logger, '_log_init': False}
+        kwargs = {
+            "json_paths": self.json_label_paths,
+            "json_data": self.json_data,
+            "logger": self.logger,
+            "_log_init": False,
+        }
 
         try:
             self.json_labels = JSONLabels(**kwargs)
@@ -39,52 +51,60 @@ class JSONEndpoint(Exporter):
             self.json_label_paths = original_labels
 
     def read_config(self):
-        """ Reads the config file using the parent method, adds json specific config """
+        """Reads the config file using the parent method, adds json specific config"""
         super().read_config()
-        if self.name not in self.config['json']:
+        if self.name not in self.config["json"]:
             raise ValueError("Endpoint not defined in config: %s" % self.name)
 
-        self.endpoint = self.config['json'][self.name]['endpoint']
-        self.metric_definitions = self.config['json'][self.name]['metrics']
-        if 'cache_life' in self.config['json'][self.name]:
-            self.cache_life = self.config['json'][self.name]['cache_life']
+        self.endpoint = self.config["json"][self.name]["endpoint"]
+        self.metric_definitions = self.config["json"][self.name]["metrics"]
+        if "cache_life" in self.config["json"][self.name]:
+            self.cache_life = self.config["json"][self.name]["cache_life"]
             self.logger.info("[%s] Setting cache life to: %s" % (self.name, self.cache_life))
 
-        for config_key in ['headers', 'post_data', 'params']:
-            setattr(self, config_key, self.config['json'][self.name].get(config_key, {}))
+        for config_key in ["headers", "post_data", "params"]:
+            setattr(self, config_key, self.config["json"][self.name].get(config_key, {}))
 
-        if json_labels := self.config['json'][self.name].get('json_labels', {}):
+        if json_labels := self.config["json"][self.name].get("json_labels", {}):
             self.json_label_paths = json_labels
 
     async def populate_metrics(self):
-        """
-        Populates the metrics for the JSON endpoint.
-        Uses cached data, does not get fresh data.
-        """
-        from .json_metric import JSONMetric
-        self.metrics = [Metric('json_request_time', value=self.request_time,
-                               help_text="Time taken to get the JSON data from the endpoint",
-                               metric_type='gauge', labels=self.get_labels(),
-                               logger=self.logger, _log_init=False)]
+        """Resets the metrics and re-populates from the JSON endpoint."""
+        self.metrics = [
+            Metric(
+                "json_request_time",
+                value=self.request_time,
+                help_text="Time taken to get the JSON data from the endpoint",
+                metric_type="gauge",
+                labels=self.get_labels(),
+                logger=self.logger,
+                _log_init=False,
+            )
+        ]
 
         for metric, values in self.metric_definitions.items():
-            metric_args = {'json_path': values['path'], 'metric_type': values.get('type')}
-            self.metrics += [JSONMetric(metric, labels=self.get_labels(), json_data=self.json_data,
-                                        **metric_args, **values,
-                                        _log_init=False, logger=self.logger)]
+            metric_args = {"json_path": values["path"], "metric_type": values.get("type")}
+            self.metrics += [
+                JSONMetric(
+                    metric,
+                    labels=self.get_labels(),
+                    json_data=self.json_data,
+                    **metric_args,
+                    **values,
+                    _log_init=False,
+                    logger=self.logger,
+                )
+            ]
 
     async def get_data(self):
-        """ Get fresh json_data """
-        from aiohttp import ClientSession
-        from json import loads
-        from time import time
+        """Get fresh json_data"""
 
         self.logger.info("[%s] Getting data from endpoint: %s" % (self.name, self.endpoint))
         kwargs = {}
         if self.headers:
-            kwargs['headers'] = self.headers
+            kwargs["headers"] = self.headers
         if self.params:
-            kwargs['params'] = self.params
+            kwargs["params"] = self.params
 
         start_time = time()
         async with ClientSession() as session:
@@ -103,11 +123,12 @@ class JSONEndpoint(Exporter):
         self.json_data = loads(request_data)
 
     async def get_metrics(self, label_filter={}):
+        """ Gets fresh data from the json endpoint.
+        Updates json labels using the latest data.
+        Populates the metrics using the new data.
+
+        Ignores metrics from config, as they are handled by the JSONExporter.
         """
-        Gets the data from the endpoint.
-        Populates the metrics using the new labels and data.
-        """
-        from json.decoder import JSONDecodeError
         for label, value in label_filter.items():
             labels = self.get_labels()
             if label not in labels or labels[label] != value:
@@ -116,7 +137,7 @@ class JSONEndpoint(Exporter):
         try:
             await self.get_data()
         except JSONDecodeError:
-            if json_data := getattr(self, 'json_data', None):
+            if json_data := getattr(self, "json_data", None):
                 self.logger.error("[%s] Failed to decode JSON data: %s" % (self.name, json_data))
             else:
                 self.logger.error("[%s] Failed to decode JSON data." % self.name)
